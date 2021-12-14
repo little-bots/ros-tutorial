@@ -5,6 +5,7 @@ use crossterm::style::Print;
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode, Clear, ClearType};
 use std::io::stdout;
 
+// http://wiki.ros.org/turtlesim/Tutorials/Rotating%20Left%20and%20Right
 fn main() {
     let mut stdout = stdout();
     //going into raw mode
@@ -25,6 +26,19 @@ fn main() {
     let ros_publisher =
         rosrust::publish::<rosrust_msg::geometry_msgs::Twist>("/turtle1/cmd_vel", 100).unwrap();
 
+    /*
+
+    x-axis
+    ^
+    |
+    |
+    |
+    |
+    |---------------> y-axis
+    [0,0]
+
+    */
+
     loop {
         execute!(stdout, cursor::MoveTo(0, 0)).unwrap();
 
@@ -42,7 +56,7 @@ fn main() {
                 )
                 .unwrap();
                 let mut msg = rosrust_msg::geometry_msgs::Twist::default();
-                msg.linear.y = 1.0;
+                msg.linear.x = 1.0;
                 ros_publisher.send(msg).unwrap();
             }
 
@@ -59,7 +73,7 @@ fn main() {
                 )
                 .unwrap();
                 let mut msg = rosrust_msg::geometry_msgs::Twist::default();
-                msg.linear.y = -1.0;
+                msg.linear.x = -1.0;
                 ros_publisher.send(msg).unwrap();
             }
 
