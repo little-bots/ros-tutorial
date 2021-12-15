@@ -21,3 +21,11 @@ path = "src/turtle_operator.rs"
 [[bin]]
 name = "turtle"
 path = "src/turtle.rs"
+
+[[bin]]
+name = "add-two-ints-server"
+path = "src/add_two_ints_server.rs"
+
+[[bin]]
+name = "add-two-ints-client"
+path = "src/add_two_ints_client.rs"

@@ -27,5 +27,7 @@ catkin_create_pkg turtlesim std_msgs rospy roscpp
 
 ## Custom ROS packages
 
-* turtlesim - custom (simplified) turtlesim 
+* turtlesim - custom (simplified) turtlesim. 
+  * See [here](http://wiki.ros.org/ROS/Tutorials/CreatingMsgAndSrv) 
 * rosservices - ROS services explored
+    * See [here](https://github.com/adnanademovic/rosrust/issues/145) and [here](https://gitlab.com/pmirabel/rosrust-boilerplate/-/tree/custom_srv/)
