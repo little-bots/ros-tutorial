@@ -27,5 +27,5 @@ catkin_create_pkg turtlesim std_msgs rospy roscpp
 
 ## Custom ROS packages
 
-* turtlesim 
-* rosservices
+* turtlesim - custom (simplified) turtlesim 
+* rosservices - ROS services explored
