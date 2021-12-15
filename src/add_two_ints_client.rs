@@ -9,7 +9,7 @@ fn main() {
     let args: Vec<_> = rosrust::args();
 
     if args.len() != 3 {
-        println!("usage: client X Y");
+        println!("usage: add_two_ints_client X Y");
         return;
     }
 

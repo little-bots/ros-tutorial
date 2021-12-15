@@ -31,3 +31,5 @@ catkin_create_pkg turtlesim std_msgs rospy roscpp
   * See [here](http://wiki.ros.org/ROS/Tutorials/CreatingMsgAndSrv) 
 * rosservices - ROS services explored
     * See [here](https://github.com/adnanademovic/rosrust/issues/145) and [here](https://gitlab.com/pmirabel/rosrust-boilerplate/-/tree/custom_srv/)
+
+**IMPROTANT:** rosmsg_include macro works properly (when including ROS services) only with linux line end i.e. LF . It does now work properly (it will panic) with windows CR LF!!

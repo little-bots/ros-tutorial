@@ -29,3 +29,11 @@ path = "src/add_two_ints_server.rs"
 [[bin]]
 name = "add-two-ints-client"
 path = "src/add_two_ints_client.rs"
+
+[[bin]]
+name = "rect-area-server"
+path = "src/rect_area_server.rs"
+
+[[bin]]
+name = "rect-area-client"
+path = "src/rect_area_client.rs"
