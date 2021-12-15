@@ -12,8 +12,6 @@ mod msg {
 }
 
 fn main() -> Result<()> {
-    // let mut stdout = stdout();
-    //going into raw mode
     enable_raw_mode()?;
     let info_message = ">>>Press CTRL + q or CTRL + c to exit<<<";
 
@@ -64,7 +62,6 @@ fn main() -> Result<()> {
         }
     }
 
-    //disabling raw mode
     disable_raw_mode()?;
 
     Ok(())

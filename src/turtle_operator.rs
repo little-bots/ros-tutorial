@@ -7,7 +7,6 @@ use std::io::stdout;
 
 fn main() {
     let mut stdout = stdout();
-    //going into raw mode
     enable_raw_mode().unwrap();
     let info_message =
         ">>>Press CTRL + q or CTRL + c to exit, use arrows to navigate the turtle bot.<<<";
@@ -133,6 +132,5 @@ fn main() {
         }
     }
 
-    //disabling raw mode
     disable_raw_mode().unwrap();
 }
