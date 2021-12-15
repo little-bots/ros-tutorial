@@ -7,13 +7,6 @@ use crossterm::Result;
 use rosrust;
 use std::io::stdout;
 
-// sudo su -
-// catkin_create_pkg turtlesim
-// package will be created under /opt/ros/noetic
-// mv /opt/ros/noetic/turtlesim /opt/ros/noetic/share/turtlesim
-// cd /opt/ros/noetic/share/turtlesim
-// mkdir msg
-// then copy Pose.msg from res folder into /opt/ros/noetic/share/turtlesim/msg
 mod msg {
     rosrust::rosmsg_include!(turtlesim / Pose);
 }

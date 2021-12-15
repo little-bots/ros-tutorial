@@ -5,7 +5,6 @@ use crossterm::style::Print;
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode, Clear, ClearType};
 use std::io::stdout;
 
-// http://wiki.ros.org/turtlesim/Tutorials/Rotating%20Left%20and%20Right
 fn main() {
     let mut stdout = stdout();
     //going into raw mode
@@ -19,7 +18,7 @@ fn main() {
         cursor::MoveTo(0, 0),
         Print(info_message)
     )
-        .unwrap();
+    .unwrap();
 
     rosrust::init("turtle_operator");
 
@@ -27,6 +26,7 @@ fn main() {
         rosrust::publish::<rosrust_msg::geometry_msgs::Twist>("/turtle1/cmd_vel", 100).unwrap();
 
     /*
+    See http://wiki.ros.org/turtlesim/Tutorials/Rotating%20Left%20and%20Right
 
     y-axis
     ^
@@ -44,9 +44,9 @@ fn main() {
 
         match read().unwrap() {
             Event::Key(KeyEvent {
-                           code: KeyCode::Up,
-                           modifiers: KeyModifiers::NONE,
-                       }) => {
+                code: KeyCode::Up,
+                modifiers: KeyModifiers::NONE,
+            }) => {
                 execute!(
                     stdout,
                     Clear(ClearType::All),
@@ -54,16 +54,16 @@ fn main() {
                     cursor::MoveTo(0, 0),
                     Print("\nGoing Up")
                 )
-                    .unwrap();
+                .unwrap();
                 let mut msg = rosrust_msg::geometry_msgs::Twist::default();
                 msg.linear.x = 1.0;
                 ros_publisher.send(msg).unwrap();
             }
 
             Event::Key(KeyEvent {
-                           code: KeyCode::Down,
-                           modifiers: KeyModifiers::NONE,
-                       }) => {
+                code: KeyCode::Down,
+                modifiers: KeyModifiers::NONE,
+            }) => {
                 execute!(
                     stdout,
                     Clear(ClearType::All),
@@ -71,16 +71,16 @@ fn main() {
                     cursor::MoveTo(0, 0),
                     Print("\nGoing down")
                 )
-                    .unwrap();
+                .unwrap();
                 let mut msg = rosrust_msg::geometry_msgs::Twist::default();
                 msg.linear.x = -1.0;
                 ros_publisher.send(msg).unwrap();
             }
 
             Event::Key(KeyEvent {
-                           code: KeyCode::Left,
-                           modifiers: KeyModifiers::NONE,
-                       }) => {
+                code: KeyCode::Left,
+                modifiers: KeyModifiers::NONE,
+            }) => {
                 execute!(
                     stdout,
                     Clear(ClearType::All),
@@ -88,16 +88,16 @@ fn main() {
                     cursor::MoveTo(0, 0),
                     Print("\nRotating counter clockwise")
                 )
-                    .unwrap();
+                .unwrap();
                 let mut msg = rosrust_msg::geometry_msgs::Twist::default();
                 msg.angular.z = 0.5;
                 ros_publisher.send(msg).unwrap();
             }
 
             Event::Key(KeyEvent {
-                           code: KeyCode::Right,
-                           modifiers: KeyModifiers::NONE,
-                       }) => {
+                code: KeyCode::Right,
+                modifiers: KeyModifiers::NONE,
+            }) => {
                 execute!(
                     stdout,
                     Clear(ClearType::All),
@@ -105,7 +105,7 @@ fn main() {
                     cursor::MoveTo(0, 0),
                     Print("\nRotating clockwise")
                 )
-                    .unwrap();
+                .unwrap();
 
                 let mut msg = rosrust_msg::geometry_msgs::Twist::default();
                 msg.angular.z = -0.5;
@@ -113,19 +113,19 @@ fn main() {
             }
 
             Event::Key(KeyEvent {
-                           code: KeyCode::Char('q'),
-                           modifiers: KeyModifiers::CONTROL,
-                       })
+                code: KeyCode::Char('q'),
+                modifiers: KeyModifiers::CONTROL,
+            })
             | Event::Key(KeyEvent {
-                             code: KeyCode::Char('c'),
-                             modifiers: KeyModifiers::CONTROL,
-                         }) => {
+                code: KeyCode::Char('c'),
+                modifiers: KeyModifiers::CONTROL,
+            }) => {
                 execute!(
                     stdout,
                     Clear(ClearType::All),
                     Print("Quiting now. Bye!\n\n")
                 )
-                    .unwrap();
+                .unwrap();
                 break;
             }
 

@@ -11,9 +11,13 @@ rosrust_msg = "0.1"
 crossterm = "0.22.1"
 
 [[bin]]
-name = "ros-turtle-locator"
+name = "turtle-locator"
 path = "src/turtle_locator.rs"
 
 [[bin]]
-name = "ros-turtle-operator"
+name = "turtle-operator"
 path = "src/turtle_operator.rs"
+
+[[bin]]
+name = "turtle"
+path = "src/turtle.rs"
