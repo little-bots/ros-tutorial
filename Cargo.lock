@@ -927,7 +927,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "ros-turtle-operator"
+name = "ros-tutorial"
 version = "0.1.0"
 dependencies = [
  "crossterm",

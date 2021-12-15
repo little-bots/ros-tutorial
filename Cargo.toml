@@ -1,5 +1,5 @@
 [package]
-name = "ros-turtle-operator"
+name = "ros-tutorial"
 version = "0.1.0"
 edition = "2021"
 
@@ -13,3 +13,7 @@ crossterm = "0.22.1"
 [[bin]]
 name = "ros-turtle-locator"
 path = "src/turtle_locator.rs"
+
+[[bin]]
+name = "ros-turtle-operator"
+path = "src/turtle_operator.rs"
