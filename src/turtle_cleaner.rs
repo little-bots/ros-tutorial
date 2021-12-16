@@ -2,7 +2,7 @@
 /// https://www.euclideanspace.com/maths/algebra/vectors/angleBetween/issues/index.htm
 /// https://automaticaddison.com/yaw-pitch-and-roll-diagrams-using-2d-coordinate-systems/
 use rosrust::Publisher;
-use rosrust::{ros_err, ros_info};
+use rosrust::{ros_debug, ros_err, ros_info};
 use rosrust_msg::geometry_msgs::Twist;
 use std::time::SystemTime;
 
@@ -38,7 +38,10 @@ fn move_forward(
         velocity_publisher.send(velocity_msg.clone()).unwrap();
 
         match t0.elapsed() {
-            Ok(elapsed) => current_distance = speed * elapsed.as_secs() as f64,
+            Ok(elapsed) => {
+                current_distance = speed * elapsed.as_secs() as f64;
+                ros_debug!("moved: {}/{}", current_distance, distance);
+            }
             Err(e) => {
                 ros_err!("move_forward elapsed time error: {:?}", e);
             }
@@ -46,6 +49,45 @@ fn move_forward(
         loop_rate.sleep();
     }
     velocity_msg.linear.x = 0.0;
+    velocity_publisher.send(velocity_msg).unwrap();
+}
+
+/// rotates by given angular speed until rotation by given
+/// angle (rotation_degree) in radians in CW or CCW direction is achieved
+fn rotate(
+    velocity_publisher: Publisher<Twist>,
+    angular_speed: f64,
+    rotation_degree: f64,
+    clockwise: bool,
+) {
+    let mut velocity_msg = Twist::default();
+    if clockwise {
+        velocity_msg.angular.z = -angular_speed.abs();
+    } else {
+        velocity_msg.angular.z = angular_speed.abs();
+    }
+
+    let t0 = SystemTime::now();
+    let loop_rate = rosrust::rate(10.0); // 10 MHz loop rate
+
+    let mut current_angle = 0.0;
+    loop {
+        velocity_publisher.send(velocity_msg.clone()).unwrap();
+
+        let time_elapsed = t0.elapsed().unwrap().as_secs() as f64;
+
+        if current_angle > rotation_degree {
+            break;
+        }
+
+        current_angle = angular_speed * time_elapsed;
+
+        ros_debug!("rotated: {}/{}", current_angle, rotation_degree);
+
+        loop_rate.sleep();
+    }
+
+    velocity_msg.angular.z = 0.0;
     velocity_publisher.send(velocity_msg).unwrap();
 }
 
@@ -62,6 +104,26 @@ fn move_forward_caller(args: Vec<String>, velocity_publisher: Publisher<Twist>) 
     move_forward(velocity_publisher, speed, distance, forward_flg);
 }
 
+fn rotate_caller(args: Vec<String>, velocity_publisher: Publisher<Twist>) {
+    let angular_speed = args[2].parse::<f64>().unwrap();
+
+    // for convenience specified in degrees. function internally recalculates to radians
+    let rotation_degree = args[3].parse::<f64>().unwrap();
+    let clockwise = args[4].parse::<bool>().unwrap();
+    ros_info!(
+        "calling rotate. angular_speed: {} rotation_degree: {} clockwise: {}",
+        angular_speed,
+        rotation_degree,
+        clockwise
+    );
+    rotate(
+        velocity_publisher,
+        angular_speed,
+        rotation_degree.to_radians(),
+        clockwise,
+    );
+}
+
 fn main() {
     rosrust::init("turtle_cleaner");
 
@@ -75,6 +137,7 @@ fn main() {
     let switch_value = args[1].parse::<i16>().unwrap();
     match switch_value {
         1 => move_forward_caller(args, velocity_publisher),
+        2 => rotate_caller(args, velocity_publisher),
         _ => {
             ros_err!("unsupported action specified {}", switch_value);
         }
