@@ -37,3 +37,7 @@ path = "src/rect_area_server.rs"
 [[bin]]
 name = "rect-area-client"
 path = "src/rect_area_client.rs"
+
+[[bin]]
+name = "turtle-cleaner"
+path = "src/turtle_cleaner.rs"
