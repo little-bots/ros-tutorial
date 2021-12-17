@@ -39,8 +39,32 @@ fn get_current_position() -> TurtlePosition {
     }
 }
 
+/// calculates euclidean distance of two points in 2D ( [x0,y0] and [x1, y1] )
 fn calculate_distance_2d(x0: f64, y0: f64, x1: f64, y1: f64) -> f64 {
     ((x1 - x0).powi(2) + (y1 - y0).powi(2)).sqrt()
+}
+
+/// Given two points in 2D ( [x_current, y_current] and [x_target, y_target] )
+/// calculates angle between vectors
+/// [x_current, y_current] -> [x_current2, y_current] where x_current2 > x_current1
+///
+/// [x_current, y_current] -> [x_target, y_target]
+///
+/// Example
+///     y-axis
+///     ^
+///   3 |          *--------> (vec from [3,3] with yaw = 0)
+///     |       .
+///   1 |   *
+///     |
+///     -- -- -- --> x-axis
+///         1     3
+///
+/// To get from point [3, 3] to point [1, 1] assuming robot yaw in [3, 3] is 0 (i.e. heading/facing east)
+/// robot needs to rotate -135 degrees (-90 degrees to face south + additional -45 degrees to face towards [1, 1])
+///
+fn angle_to_target_2d(x_current: f64, y_current: f64, x_target: f64, y_target: f64) -> f64 {
+    (y_target - y_current).atan2(x_target - x_current)
 }
 
 /// moves forward (by publishing Twist messages with given linear speed)
@@ -149,8 +173,9 @@ fn go_to_target(
             calculate_distance_2d(turtle_position.x, turtle_position.y, target_x, target_y);
 
         let linear_speed = k_linear * target_distance;
-        let desired_angle = (target_y - turtle_position.y).atan2(target_x - turtle_position.x);
-        let angular_speed = k_angular * (desired_angle - turtle_position.yaw);
+        let angle_to_target =
+            angle_to_target_2d(turtle_position.x, turtle_position.y, target_x, target_y);
+        let angular_speed = k_angular * (angle_to_target - turtle_position.yaw);
 
         velocity_msg.linear.x = linear_speed;
         velocity_msg.angular.z = angular_speed;
@@ -290,5 +315,17 @@ mod tests {
         let x = -1f64;
         let y = 1f64;
         assert_eq!(y.atan2(x).to_degrees(), 135_f64);
+    }
+
+    #[test]
+    fn test_angle_to_target_2d() {
+        assert_eq!(
+            angle_to_target_2d(3.0, 3.0, 1.0, 1.0).to_degrees(),
+            -135_f64
+        );
+        assert_eq!(angle_to_target_2d(3.0, 3.0, 3.0, 1.0).to_degrees(), -90_f64);
+        assert_eq!(angle_to_target_2d(3.0, 3.0, 4.0, 4.0).to_degrees(), 45_f64);
+        assert_eq!(angle_to_target_2d(3.0, 3.0, 3.0, 4.0).to_degrees(), 90_f64);
+        assert_eq!(angle_to_target_2d(3.0, 3.0, 2.0, 4.0).to_degrees(), 135_f64);
     }
 }
