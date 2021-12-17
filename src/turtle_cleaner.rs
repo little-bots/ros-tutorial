@@ -205,8 +205,8 @@ fn go_to_target(
 
 /// sets new orientation (specified in degrees for convenience) of robot relative to current yaw.
 /// Example:
-///     current yaw = 0 (robot facing east), relative_angle = -90 --> new yaw = -90
-///     current yaw = -90 , relative_angle = -45 --> new yaw = -135
+///     current yaw = 0 (robot facing east), relative_angle = -90 --> new yaw = -90 (facing south)
+///     current yaw = -90 , relative_angle = -45 --> new yaw = -135 (facing south west)
 fn set_relative_orientation(
     velocity_publisher: Publisher<Twist>,
     angular_speed: f64,
@@ -214,9 +214,9 @@ fn set_relative_orientation(
 ) {
     let turtle_position = get_current_position();
 
-    let angle_to_rotate = relative_angle - turtle_position.yaw;
+    let angle_to_rotate = turtle_position.yaw + relative_angle;
 
-    let clockwise = if angle_to_rotate < 0.0 { true } else { false };
+    let clockwise = if relative_angle < 0.0 { true } else { false };
     rotate(
         velocity_publisher,
         angular_speed,
@@ -251,6 +251,11 @@ fn spiral_move(velocity_publisher: Publisher<Twist>, linear_speed_init: f64, ang
     velocity_publisher.send(velocity_msg).unwrap();
 }
 
+
+///
+/// caller functions below. called form main. after parsing command line args
+/// they will call core movement functions.
+///
 fn move_forward_caller(args: Vec<String>, velocity_publisher: Publisher<Twist>) {
     let speed = args[2].parse::<f64>().unwrap();
     let distance = args[3].parse::<f64>().unwrap();
@@ -312,18 +317,23 @@ fn go_to_target_caller(args: Vec<String>, velocity_publisher: Publisher<Twist>) 
 
 fn set_relative_orientation_caller(args: Vec<String>, velocity_publisher: Publisher<Twist>) {
     let angular_speed = args[2].parse::<f64>().unwrap();
-    let target_yaw = args[3].parse::<f64>().unwrap();
+    let relative_angle = args[3].parse::<f64>().unwrap();
 
     ros_info!(
-        "calling set_desired_orientation. angular_speed: {} target_yaw: {}",
+        "calling set_desired_orientation. angular_speed: {} relative_angle: {}",
         angular_speed,
-        target_yaw,
+        relative_angle,
     );
-    set_relative_orientation(velocity_publisher, angular_speed, target_yaw.to_radians());
+
+    // relative angle can be specified in degrees for convenience
+    set_relative_orientation(
+        velocity_publisher,
+        angular_speed,
+        relative_angle.to_radians(),
+    );
 }
 
 fn spiral_move_caller(args: Vec<String>, velocity_publisher: Publisher<Twist>) {
-    // 0 & 2 are good demonstration values from the middle of the turtle area (~[5, 5])
     let linear_speed_init = args[2].parse::<f64>().unwrap();
     let angular_speed = args[3].parse::<f64>().unwrap();
 
@@ -336,11 +346,30 @@ fn spiral_move_caller(args: Vec<String>, velocity_publisher: Publisher<Twist>) {
     spiral_move(velocity_publisher, linear_speed_init, angular_speed);
 }
 
+fn grid_clean() {
+    go_to_target(get_publisher(), 1.0, 1.0, 0.5, 4.0);
+
+    // rotate clockwise so that facing north
+    // set_relative_orientation(get_publisher(), 0.1, 90_f64.to_radians());
+
+    go_to_target(get_publisher(), 2.0, 1.0, 0.5, 4.0);
+    go_to_target(get_publisher(), 2.0, 9.0, 0.5, 4.0);
+    go_to_target(get_publisher(), 3.0, 9.0, 0.5, 4.0);
+    go_to_target(get_publisher(), 4.0, 9.0, 0.5, 4.0);
+}
+
+fn spiral_clean() {
+    spiral_move(get_publisher(), 0.0, 2.0);
+}
+
+fn get_publisher() -> Publisher<Twist> {
+    rosrust::publish::<rosrust_msg::geometry_msgs::Twist>("/turtle1/cmd_vel", 100).unwrap()
+}
+
 fn main() {
     rosrust::init("turtle_cleaner");
 
-    let velocity_publisher =
-        rosrust::publish::<rosrust_msg::geometry_msgs::Twist>("/turtle1/cmd_vel", 100).unwrap();
+    let velocity_publisher = get_publisher();
 
     let _raii_subscriber =
         rosrust::subscribe("/turtle1/pose", 100, move |pose: msg::turtlesim::Pose| {
@@ -363,6 +392,8 @@ fn main() {
         3 => go_to_target_caller(args, velocity_publisher),
         4 => set_relative_orientation_caller(args, velocity_publisher),
         5 => spiral_move_caller(args, velocity_publisher),
+        6 => grid_clean(),
+        7 => spiral_clean(),
         _ => {
             ros_err!("unsupported action specified {}", switch_value);
         }
