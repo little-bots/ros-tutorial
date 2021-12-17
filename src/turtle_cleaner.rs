@@ -39,6 +39,15 @@ fn get_current_position() -> TurtlePosition {
     }
 }
 
+/// helper function to set current turtle position
+fn set_current_position(new_turtle_position: &TurtlePosition) {
+    let mut wl = TURTLE_POSITION.write().unwrap();
+    let turtle_position = &mut *wl;
+    turtle_position.x = new_turtle_position.x;
+    turtle_position.y = new_turtle_position.y;
+    turtle_position.yaw = new_turtle_position.yaw;
+}
+
 /// calculates euclidean distance of two points in 2D ( [x0,y0] and [x1, y1] )
 fn calculate_distance_2d(x0: f64, y0: f64, x1: f64, y1: f64) -> f64 {
     ((x1 - x0).powi(2) + (y1 - y0).powi(2)).sqrt()
@@ -261,11 +270,11 @@ fn main() {
 
     let _raii_subscriber =
         rosrust::subscribe("/turtle1/pose", 100, move |pose: msg::turtlesim::Pose| {
-            let mut wl = TURTLE_POSITION.write().unwrap();
-            let turtle_position = &mut *wl;
-            turtle_position.x = pose.x as f64;
-            turtle_position.y = pose.y as f64;
-            turtle_position.yaw = pose.theta as f64;
+            set_current_position(&TurtlePosition {
+                x: pose.x as f64,
+                y: pose.y as f64,
+                yaw: pose.theta as f64,
+            });
         })
         .unwrap();
 
