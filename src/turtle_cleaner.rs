@@ -9,7 +9,13 @@ use lazy_static::lazy_static;
 use rosrust::Publisher;
 use rosrust::{ros_debug, ros_err, ros_info};
 use rosrust_msg::geometry_msgs::Twist;
+
+#[cfg(not(feature = "strict-pos-sync"))]
 use std::sync::RwLock;
+
+#[cfg(feature = "strict-pos-sync")]
+use std::sync::Mutex;
+
 use std::time::SystemTime;
 
 mod msg {
@@ -23,11 +29,18 @@ struct TurtlePosition {
     pub yaw: f64,
 }
 
+#[cfg(not(feature = "strict-pos-sync"))]
 lazy_static! {
     static ref TURTLE_POSITION: RwLock<TurtlePosition> = RwLock::new(TurtlePosition::default());
 }
 
+#[cfg(feature = "strict-pos-sync")]
+lazy_static! {
+    static ref TURTLE_POSITION: Mutex<TurtlePosition> = Mutex::new(TurtlePosition::default());
+}
+
 /// helper function to get current turtle position
+#[cfg(not(feature = "strict-pos-sync"))]
 fn get_current_position() -> TurtlePosition {
     let rl = TURTLE_POSITION.read().unwrap();
     let turtle_position = &*rl;
@@ -40,8 +53,32 @@ fn get_current_position() -> TurtlePosition {
 }
 
 /// helper function to set current turtle position
+#[cfg(not(feature = "strict-pos-sync"))]
 fn set_current_position(new_turtle_position: &TurtlePosition) {
     let mut wl = TURTLE_POSITION.write().unwrap();
+    let turtle_position = &mut *wl;
+    turtle_position.x = new_turtle_position.x;
+    turtle_position.y = new_turtle_position.y;
+    turtle_position.yaw = new_turtle_position.yaw;
+}
+
+/// helper function to get current turtle position
+#[cfg(feature = "strict-pos-sync")]
+fn get_current_position() -> TurtlePosition {
+    let rl = TURTLE_POSITION.lock().unwrap();
+    let turtle_position = &*rl;
+
+    TurtlePosition {
+        x: turtle_position.x,
+        y: turtle_position.y,
+        yaw: turtle_position.yaw,
+    }
+}
+
+/// helper function to set current turtle position
+#[cfg(feature = "strict-pos-sync")]
+fn set_current_position(new_turtle_position: &TurtlePosition) {
+    let mut wl = TURTLE_POSITION.lock().unwrap();
     let turtle_position = &mut *wl;
     turtle_position.x = new_turtle_position.x;
     turtle_position.y = new_turtle_position.y;
@@ -203,20 +240,16 @@ fn go_to_target(
     velocity_publisher.send(velocity_msg).unwrap();
 }
 
-/// sets new orientation (specified in degrees for convenience) of robot relative to current yaw.
-/// Example:
-///     current yaw = 0 (robot facing east), relative_angle = -90 --> new yaw = -90 (facing south)
-///     current yaw = -90 , relative_angle = -45 --> new yaw = -135 (facing south west)
-fn set_relative_orientation(
-    velocity_publisher: Publisher<Twist>,
-    angular_speed: f64,
-    relative_angle: f64,
-) {
+/// sets new yaw. uses rotate to change the robot position accordingly.
+fn set_yaw(velocity_publisher: Publisher<Twist>, angular_speed: f64, new_yaw: f64) {
     let turtle_position = get_current_position();
 
-    let angle_to_rotate = turtle_position.yaw + relative_angle;
+    let angle_to_rotate = new_yaw - turtle_position.yaw;
+    if angle_to_rotate == 0.0 {
+        return;
+    }
 
-    let clockwise = if relative_angle < 0.0 { true } else { false };
+    let clockwise = if angle_to_rotate < 0.0 { true } else { false };
     rotate(
         velocity_publisher,
         angular_speed,
@@ -250,7 +283,6 @@ fn spiral_move(velocity_publisher: Publisher<Twist>, linear_speed_init: f64, ang
     velocity_msg.angular.z = 0.0;
     velocity_publisher.send(velocity_msg).unwrap();
 }
-
 
 ///
 /// caller functions below. called form main. after parsing command line args
@@ -315,22 +347,18 @@ fn go_to_target_caller(args: Vec<String>, velocity_publisher: Publisher<Twist>) 
     go_to_target(velocity_publisher, target_x, target_y, k_linear, k_angular);
 }
 
-fn set_relative_orientation_caller(args: Vec<String>, velocity_publisher: Publisher<Twist>) {
+fn set_yaw_caller(args: Vec<String>, velocity_publisher: Publisher<Twist>) {
     let angular_speed = args[2].parse::<f64>().unwrap();
-    let relative_angle = args[3].parse::<f64>().unwrap();
+    let new_yaw = args[3].parse::<f64>().unwrap();
 
     ros_info!(
-        "calling set_desired_orientation. angular_speed: {} relative_angle: {}",
+        "calling set_yaw. angular_speed: {} new_yaw: {}",
         angular_speed,
-        relative_angle,
+        new_yaw,
     );
 
-    // relative angle can be specified in degrees for convenience
-    set_relative_orientation(
-        velocity_publisher,
-        angular_speed,
-        relative_angle.to_radians(),
-    );
+    // yaw angle is specified in degrees for convenience
+    set_yaw(velocity_publisher, angular_speed, new_yaw.to_radians());
 }
 
 fn spiral_move_caller(args: Vec<String>, velocity_publisher: Publisher<Twist>) {
@@ -349,24 +377,48 @@ fn spiral_move_caller(args: Vec<String>, velocity_publisher: Publisher<Twist>) {
 fn grid_clean() {
     go_to_target(get_publisher(), 1.0, 1.0, 0.5, 4.0);
 
-    // rotate clockwise so that facing north
-    // set_relative_orientation(get_publisher(), 0.1, 90_f64.to_radians());
+    /* for i in (2..5).step_by(1) {
+        go_to_target(get_publisher(), i as f64, 1.0, 0.5, 4.0);
+        go_to_target(get_publisher(), i as f64, 10.0, 0.5, 4.0);
+        go_to_target(get_publisher(), i as f64 + 1.0, 10.0, 0.5, 4.0);
+        go_to_target(get_publisher(), i as f64 + 1.0, 1.0, 0.5, 4.0);
+    } */
 
-    go_to_target(get_publisher(), 2.0, 1.0, 0.5, 4.0);
-    go_to_target(get_publisher(), 2.0, 9.0, 0.5, 4.0);
-    go_to_target(get_publisher(), 3.0, 9.0, 0.5, 4.0);
-    go_to_target(get_publisher(), 4.0, 9.0, 0.5, 4.0);
+    let angle90 = 90.0_f64.to_radians();
+    let angular_speed = 0.5;
+    let linear_speed = 2.0;
+
+    // face to east
+    set_yaw(get_publisher(), angular_speed, 0.0);
+
+    for _ in 1..5 {
+        move_forward(get_publisher(), linear_speed, 1., true);
+        rotate(get_publisher(), angular_speed, angle90, false);
+        move_forward(get_publisher(), linear_speed, 9., true);
+        rotate(get_publisher(), angular_speed, angle90, true);
+        move_forward(get_publisher(), linear_speed, 1., true);
+        rotate(get_publisher(), angular_speed, angle90, true);
+        move_forward(get_publisher(), linear_speed, 9., true);
+        rotate(get_publisher(), angular_speed, angle90, false);
+    }
 }
 
 fn spiral_clean() {
     spiral_move(get_publisher(), 0.0, 2.0);
 }
 
+// quick & dirty. instead we should create publisher once and pass mutable reference.
 fn get_publisher() -> Publisher<Twist> {
     rosrust::publish::<rosrust_msg::geometry_msgs::Twist>("/turtle1/cmd_vel", 100).unwrap()
 }
 
 fn main() {
+    if cfg!(feature = "strict-pos-sync") {
+        println!("strict-pos-sync enabled");
+    } else {
+        println!("strict-pos-sync disabled");
+    }
+
     rosrust::init("turtle_cleaner");
 
     let velocity_publisher = get_publisher();
@@ -390,7 +442,7 @@ fn main() {
         1 => move_forward_caller(args, velocity_publisher),
         2 => rotate_caller(args, velocity_publisher),
         3 => go_to_target_caller(args, velocity_publisher),
-        4 => set_relative_orientation_caller(args, velocity_publisher),
+        4 => set_yaw_caller(args, velocity_publisher),
         5 => spiral_move_caller(args, velocity_publisher),
         6 => grid_clean(),
         7 => spiral_clean(),

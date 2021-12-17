@@ -11,6 +11,10 @@ rosrust_msg = "0.1"
 crossterm = "0.22.1"
 lazy_static = "1.4.0"
 
+[features]
+default = []
+strict-pos-sync = []
+
 [[bin]]
 name = "turtle-locator"
 path = "src/turtle_locator.rs"
