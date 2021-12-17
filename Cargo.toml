@@ -9,6 +9,7 @@ edition = "2021"
 rosrust = "0.9"
 rosrust_msg = "0.1"
 crossterm = "0.22.1"
+lazy_static = "1.4.0"
 
 [[bin]]
 name = "turtle-locator"
