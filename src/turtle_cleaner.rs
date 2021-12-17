@@ -203,6 +203,28 @@ fn go_to_target(
     velocity_publisher.send(velocity_msg).unwrap();
 }
 
+/// sets new orientation (specified in degrees for convenience) of robot relative to current yaw.
+/// Example:
+///     current yaw = 0 (robot facing east), relative_angle = -90 --> new yaw = -90
+///     current yaw = -90 , relative_angle = -45 --> new yaw = -135
+fn set_relative_orientation(
+    velocity_publisher: Publisher<Twist>,
+    angular_speed: f64,
+    relative_angle: f64,
+) {
+    let turtle_position = get_current_position();
+
+    let angle_to_rotate = relative_angle - turtle_position.yaw;
+
+    let clockwise = if angle_to_rotate < 0.0 { true } else { false };
+    rotate(
+        velocity_publisher,
+        angular_speed,
+        angle_to_rotate.abs(),
+        clockwise,
+    );
+}
+
 fn move_forward_caller(args: Vec<String>, velocity_publisher: Publisher<Twist>) {
     let speed = args[2].parse::<f64>().unwrap();
     let distance = args[3].parse::<f64>().unwrap();
@@ -262,6 +284,18 @@ fn go_to_target_caller(args: Vec<String>, velocity_publisher: Publisher<Twist>) 
     go_to_target(velocity_publisher, target_x, target_y, k_linear, k_angular);
 }
 
+fn set_relative_orientation_caller(args: Vec<String>, velocity_publisher: Publisher<Twist>) {
+    let angular_speed = args[2].parse::<f64>().unwrap();
+    let target_yaw = args[3].parse::<f64>().unwrap();
+
+    ros_info!(
+        "calling set_desired_orientation. angular_speed: {} target_yaw: {}",
+        angular_speed,
+        target_yaw,
+    );
+    set_relative_orientation(velocity_publisher, angular_speed, target_yaw.to_radians());
+}
+
 fn main() {
     rosrust::init("turtle_cleaner");
 
@@ -287,6 +321,7 @@ fn main() {
         1 => move_forward_caller(args, velocity_publisher),
         2 => rotate_caller(args, velocity_publisher),
         3 => go_to_target_caller(args, velocity_publisher),
+        4 => set_relative_orientation_caller(args, velocity_publisher),
         _ => {
             ros_err!("unsupported action specified {}", switch_value);
         }
