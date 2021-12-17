@@ -225,6 +225,32 @@ fn set_relative_orientation(
     );
 }
 
+/// moves the robot from current location in spiral clockwise move. this is achieved
+/// by maintaining same angular velocity and gradual increase of initial linear velocity
+fn spiral_move(velocity_publisher: Publisher<Twist>, linear_speed_init: f64, angular_speed: f64) {
+    let mut velocity_msg = Twist::default();
+
+    let loop_rate = rosrust::rate(1.0);
+
+    let mut linear_speed = linear_speed_init;
+    loop {
+        let turtle_position = get_current_position();
+        if turtle_position.x > 10.5 || turtle_position.y > 10.5 {
+            break;
+        }
+        linear_speed = linear_speed + 1.0;
+        velocity_msg.linear.x = linear_speed;
+        velocity_msg.angular.z = angular_speed;
+
+        velocity_publisher.send(velocity_msg.clone()).unwrap();
+        loop_rate.sleep();
+    }
+
+    velocity_msg.linear.x = 0.0;
+    velocity_msg.angular.z = 0.0;
+    velocity_publisher.send(velocity_msg).unwrap();
+}
+
 fn move_forward_caller(args: Vec<String>, velocity_publisher: Publisher<Twist>) {
     let speed = args[2].parse::<f64>().unwrap();
     let distance = args[3].parse::<f64>().unwrap();
@@ -296,6 +322,20 @@ fn set_relative_orientation_caller(args: Vec<String>, velocity_publisher: Publis
     set_relative_orientation(velocity_publisher, angular_speed, target_yaw.to_radians());
 }
 
+fn spiral_move_caller(args: Vec<String>, velocity_publisher: Publisher<Twist>) {
+    // 0 & 2 are good demonstration values from the middle of the turtle area (~[5, 5])
+    let linear_speed_init = args[2].parse::<f64>().unwrap();
+    let angular_speed = args[3].parse::<f64>().unwrap();
+
+    ros_info!(
+        "calling spiral_move. linear_speed_init: {} angular_speed: {}",
+        linear_speed_init,
+        angular_speed,
+    );
+
+    spiral_move(velocity_publisher, linear_speed_init, angular_speed);
+}
+
 fn main() {
     rosrust::init("turtle_cleaner");
 
@@ -322,6 +362,7 @@ fn main() {
         2 => rotate_caller(args, velocity_publisher),
         3 => go_to_target_caller(args, velocity_publisher),
         4 => set_relative_orientation_caller(args, velocity_publisher),
+        5 => spiral_move_caller(args, velocity_publisher),
         _ => {
             ros_err!("unsupported action specified {}", switch_value);
         }
