@@ -117,7 +117,7 @@ fn angle_to_target_2d(x_current: f64, y_current: f64, x_target: f64, y_target: f
 /// until defined distance is travelled by defined speed
 /// then linear speed is set to zero to stop.
 fn move_forward(
-    velocity_publisher: Publisher<Twist>,
+    velocity_publisher: &mut Publisher<Twist>,
     speed: f64,
     distance: f64,
     move_forward: bool,
@@ -130,7 +130,7 @@ fn move_forward(
     }
 
     let t0 = SystemTime::now();
-    let loop_rate = rosrust::rate(10.0); // 10 MHz loop rate
+    let loop_rate = rosrust::rate(10.0); // 10 Hz loop rate
     let mut current_distance = 0.0;
     while current_distance < distance {
         velocity_publisher.send(velocity_msg.clone()).unwrap();
@@ -153,7 +153,7 @@ fn move_forward(
 /// rotates by given angular speed until rotation by given
 /// angle (rotation_rad) in radians in CW or CCW direction is achieved
 fn rotate(
-    velocity_publisher: Publisher<Twist>,
+    velocity_publisher: &mut Publisher<Twist>,
     angular_speed: f64,
     rotation_rad: f64,
     clockwise: bool,
@@ -180,7 +180,12 @@ fn rotate(
 
         current_angle = angular_speed * time_elapsed;
 
-        ros_debug!("rotated: {}/{}. time elapsed: {}", current_angle, rotation_rad, time_elapsed);
+        ros_debug!(
+            "rotated: {}/{}. time elapsed: {}",
+            current_angle,
+            rotation_rad,
+            time_elapsed
+        );
         ros_debug!(
             "rotated: {}/{}. Current pos: {:?}",
             current_angle,
@@ -200,7 +205,7 @@ fn rotate(
 /// by k_linear and k_angular constants. To closer to target
 /// the slower we are moving.
 fn go_to_target(
-    velocity_publisher: Publisher<Twist>,
+    velocity_publisher: &mut Publisher<Twist>,
     target_x: f64,
     target_y: f64,
     k_linear: f64,
@@ -241,7 +246,7 @@ fn go_to_target(
 }
 
 /// sets new yaw. uses rotate to change the robot position accordingly.
-fn set_yaw(velocity_publisher: Publisher<Twist>, angular_speed: f64, new_yaw: f64) {
+fn set_yaw(velocity_publisher: &mut Publisher<Twist>, angular_speed: f64, new_yaw: f64) {
     let turtle_position = get_current_position();
 
     let angle_to_rotate = new_yaw - turtle_position.yaw;
@@ -260,7 +265,11 @@ fn set_yaw(velocity_publisher: Publisher<Twist>, angular_speed: f64, new_yaw: f6
 
 /// moves the robot from current location in spiral clockwise move. this is achieved
 /// by maintaining same angular velocity and gradual increase of initial linear velocity
-fn spiral_move(velocity_publisher: Publisher<Twist>, linear_speed_init: f64, angular_speed: f64) {
+fn spiral_move(
+    velocity_publisher: &mut Publisher<Twist>,
+    linear_speed_init: f64,
+    angular_speed: f64,
+) {
     let mut velocity_msg = Twist::default();
 
     let loop_rate = rosrust::rate(1.0);
@@ -288,7 +297,7 @@ fn spiral_move(velocity_publisher: Publisher<Twist>, linear_speed_init: f64, ang
 /// caller functions below. called form main. after parsing command line args
 /// they will call core movement functions.
 ///
-fn move_forward_caller(args: Vec<String>, velocity_publisher: Publisher<Twist>) {
+fn move_forward_caller(args: Vec<String>, velocity_publisher: &mut Publisher<Twist>) {
     let speed = args[2].parse::<f64>().unwrap();
     let distance = args[3].parse::<f64>().unwrap();
     let forward_flg = args[4].parse::<bool>().unwrap();
@@ -301,7 +310,7 @@ fn move_forward_caller(args: Vec<String>, velocity_publisher: Publisher<Twist>) 
     move_forward(velocity_publisher, speed, distance, forward_flg);
 }
 
-fn  rotate_caller(args: Vec<String>, velocity_publisher: Publisher<Twist>) {
+fn rotate_caller(args: Vec<String>, velocity_publisher: &mut Publisher<Twist>) {
     let angular_speed = args[2].parse::<f64>().unwrap();
 
     // for convenience specified in degrees. function internally recalculates to radians
@@ -321,7 +330,7 @@ fn  rotate_caller(args: Vec<String>, velocity_publisher: Publisher<Twist>) {
     );
 }
 
-fn go_to_target_caller(args: Vec<String>, velocity_publisher: Publisher<Twist>) {
+fn go_to_target_caller(args: Vec<String>, velocity_publisher: &mut Publisher<Twist>) {
     let target_x = args[2].parse::<f64>().unwrap();
     let target_y = args[3].parse::<f64>().unwrap();
 
@@ -347,7 +356,7 @@ fn go_to_target_caller(args: Vec<String>, velocity_publisher: Publisher<Twist>) 
     go_to_target(velocity_publisher, target_x, target_y, k_linear, k_angular);
 }
 
-fn set_yaw_caller(args: Vec<String>, velocity_publisher: Publisher<Twist>) {
+fn set_yaw_caller(args: Vec<String>, velocity_publisher: &mut Publisher<Twist>) {
     let angular_speed = args[2].parse::<f64>().unwrap();
     let new_yaw = args[3].parse::<f64>().unwrap();
 
@@ -361,7 +370,7 @@ fn set_yaw_caller(args: Vec<String>, velocity_publisher: Publisher<Twist>) {
     set_yaw(velocity_publisher, angular_speed, new_yaw.to_radians());
 }
 
-fn spiral_move_caller(args: Vec<String>, velocity_publisher: Publisher<Twist>) {
+fn spiral_move_caller(args: Vec<String>, velocity_publisher: &mut Publisher<Twist>) {
     let linear_speed_init = args[2].parse::<f64>().unwrap();
     let angular_speed = args[3].parse::<f64>().unwrap();
 
@@ -375,7 +384,9 @@ fn spiral_move_caller(args: Vec<String>, velocity_publisher: Publisher<Twist>) {
 }
 
 fn grid_clean() {
-    go_to_target(get_publisher(), 1.0, 1.0, 0.5, 4.0);
+    let mut publisher = get_publisher();
+
+    go_to_target(&mut publisher, 1.0, 1.0, 0.5, 4.0);
 
     /* for i in (2..5).step_by(1) {
         go_to_target(get_publisher(), i as f64, 1.0, 0.5, 4.0);
@@ -385,26 +396,27 @@ fn grid_clean() {
     } */
 
     let angle90 = 90.0_f64.to_radians();
-    let angular_speed = 0.25; // rotate slowly sot hat it is precise
-    let linear_speed = 2.0;
+    let angular_speed = 0.25;
+    let linear_speed = 0.5;
+    let linear_speed_quick = 2.0;
 
     // face to east
-    set_yaw(get_publisher(), angular_speed, 0.0);
+    set_yaw(&mut publisher, angular_speed, 0.0);
 
     for _ in 1..5 {
-        move_forward(get_publisher(), linear_speed, 1., true);
-        rotate(get_publisher(), angular_speed, angle90, false);
-        move_forward(get_publisher(), linear_speed, 9., true);
-        rotate(get_publisher(), angular_speed, angle90, true);
-        move_forward(get_publisher(), linear_speed, 1., true);
-        rotate(get_publisher(), angular_speed, angle90, true);
-        move_forward(get_publisher(), linear_speed, 9., true);
-        rotate(get_publisher(), angular_speed, angle90, false);
+        move_forward(&mut publisher, linear_speed, 1., true);
+        rotate(&mut publisher, angular_speed, angle90, false);
+        move_forward(&mut publisher, linear_speed_quick, 9., true);
+        rotate(&mut publisher, angular_speed, angle90, true);
+        move_forward(&mut publisher, linear_speed, 1., true);
+        rotate(&mut publisher, angular_speed, angle90, true);
+        move_forward(&mut publisher, linear_speed_quick, 9., true);
+        rotate(&mut publisher, angular_speed, angle90, false);
     }
 }
 
 fn spiral_clean() {
-    spiral_move(get_publisher(), 0.0, 2.0);
+    spiral_move(&mut get_publisher(), 0.0, 2.0);
 }
 
 // quick & dirty. instead we should create publisher once and pass mutable reference.
@@ -421,7 +433,7 @@ fn main() {
 
     rosrust::init("turtle_cleaner");
 
-    let velocity_publisher = get_publisher();
+    let mut velocity_publisher = get_publisher();
 
     let _raii_subscriber =
         rosrust::subscribe("/turtle1/pose", 100, move |pose: msg::turtlesim::Pose| {
@@ -439,11 +451,11 @@ fn main() {
 
     let switch_value = args[1].parse::<i16>().unwrap();
     match switch_value {
-        1 => move_forward_caller(args, velocity_publisher),
-        2 => rotate_caller(args, velocity_publisher),
-        3 => go_to_target_caller(args, velocity_publisher),
-        4 => set_yaw_caller(args, velocity_publisher),
-        5 => spiral_move_caller(args, velocity_publisher),
+        1 => move_forward_caller(args, &mut velocity_publisher),
+        2 => rotate_caller(args, &mut velocity_publisher),
+        3 => go_to_target_caller(args, &mut velocity_publisher),
+        4 => set_yaw_caller(args, &mut velocity_publisher),
+        5 => spiral_move_caller(args, &mut velocity_publisher),
         6 => grid_clean(),
         7 => spiral_clean(),
         _ => {
