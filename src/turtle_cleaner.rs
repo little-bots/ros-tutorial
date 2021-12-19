@@ -388,13 +388,6 @@ fn grid_clean() {
 
     go_to_target(&mut publisher, 1.0, 1.0, 0.5, 4.0);
 
-    /* for i in (2..5).step_by(1) {
-        go_to_target(get_publisher(), i as f64, 1.0, 0.5, 4.0);
-        go_to_target(get_publisher(), i as f64, 10.0, 0.5, 4.0);
-        go_to_target(get_publisher(), i as f64 + 1.0, 10.0, 0.5, 4.0);
-        go_to_target(get_publisher(), i as f64 + 1.0, 1.0, 0.5, 4.0);
-    } */
-
     let angle90 = 90.0_f64.to_radians();
     let angular_speed = 0.25;
     let linear_speed = 0.5;
@@ -403,7 +396,7 @@ fn grid_clean() {
     // face to east
     set_yaw(&mut publisher, angular_speed, 0.0);
 
-    for _ in 1..5 {
+    for _ in 1..6 {
         move_forward(&mut publisher, linear_speed, 1., true);
         rotate(&mut publisher, angular_speed, angle90, false);
         move_forward(&mut publisher, linear_speed_quick, 9., true);
@@ -415,11 +408,26 @@ fn grid_clean() {
     }
 }
 
+fn grid_clean2() {
+    let mut publisher = get_publisher();
+
+    let kl = 0.5; // constant for changing linear speed proportionally to target distance
+    let ka = 4.0; //constant for changing angular speed proportionally to target yaw
+
+    go_to_target(&mut publisher, 1.0, 1.0, kl, ka);
+
+    for i in (2..5).step_by(1) {
+        go_to_target(&mut publisher, i as f64, 1.0, kl, ka);
+        go_to_target(&mut publisher, i as f64, 10.0, kl, ka);
+        go_to_target(&mut publisher, i as f64 + 1.0, 10.0, kl, ka);
+        go_to_target(&mut publisher, i as f64 + 1.0, 1.0, kl, ka);
+    }
+}
+
 fn spiral_clean() {
     spiral_move(&mut get_publisher(), 0.0, 2.0);
 }
 
-// quick & dirty. instead we should create publisher once and pass mutable reference.
 fn get_publisher() -> Publisher<Twist> {
     rosrust::publish::<rosrust_msg::geometry_msgs::Twist>("/turtle1/cmd_vel", 100).unwrap()
 }
@@ -457,7 +465,8 @@ fn main() {
         4 => set_yaw_caller(args, &mut velocity_publisher),
         5 => spiral_move_caller(args, &mut velocity_publisher),
         6 => grid_clean(),
-        7 => spiral_clean(),
+        7 => grid_clean2(),
+        8 => spiral_clean(),
         _ => {
             ros_err!("unsupported action specified {}", switch_value);
         }
