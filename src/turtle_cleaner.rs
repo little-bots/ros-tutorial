@@ -137,7 +137,7 @@ fn move_forward(
 
         match t0.elapsed() {
             Ok(elapsed) => {
-                current_distance = speed * elapsed.as_secs() as f64;
+                current_distance = speed * elapsed.as_secs_f64() as f64;
                 ros_debug!("moved: {}/{}", current_distance, distance);
             }
             Err(e) => {
