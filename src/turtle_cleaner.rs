@@ -166,13 +166,13 @@ fn rotate(
     }
 
     let t0 = SystemTime::now();
-    let loop_rate = rosrust::rate(10.0); // 10 MHz loop rate
+    let loop_rate = rosrust::rate(10.0); // 10 Hz loop rate
 
     let mut current_angle = 0.0;
     loop {
         velocity_publisher.send(velocity_msg.clone()).unwrap();
 
-        let time_elapsed = t0.elapsed().unwrap().as_secs() as f64;
+        let time_elapsed = t0.elapsed().unwrap().as_secs_f64() as f64;
 
         if current_angle > rotation_rad {
             break;
@@ -180,7 +180,7 @@ fn rotate(
 
         current_angle = angular_speed * time_elapsed;
 
-        ros_debug!("rotated: {}/{}", current_angle, rotation_rad);
+        ros_debug!("rotated: {}/{}. time elapsed: {}", current_angle, rotation_rad, time_elapsed);
         ros_debug!(
             "rotated: {}/{}. Current pos: {:?}",
             current_angle,
@@ -385,7 +385,7 @@ fn grid_clean() {
     } */
 
     let angle90 = 90.0_f64.to_radians();
-    let angular_speed = 0.5;
+    let angular_speed = 0.25; // rotate slowly sot hat it is precise
     let linear_speed = 2.0;
 
     // face to east
