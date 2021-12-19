@@ -151,11 +151,11 @@ fn move_forward(
 }
 
 /// rotates by given angular speed until rotation by given
-/// angle (rotation_degree) in radians in CW or CCW direction is achieved
+/// angle (rotation_rad) in radians in CW or CCW direction is achieved
 fn rotate(
     velocity_publisher: Publisher<Twist>,
     angular_speed: f64,
-    rotation_degree: f64,
+    rotation_rad: f64,
     clockwise: bool,
 ) {
     let mut velocity_msg = Twist::default();
@@ -174,17 +174,17 @@ fn rotate(
 
         let time_elapsed = t0.elapsed().unwrap().as_secs() as f64;
 
-        if current_angle > rotation_degree {
+        if current_angle > rotation_rad {
             break;
         }
 
         current_angle = angular_speed * time_elapsed;
 
-        ros_debug!("rotated: {}/{}", current_angle, rotation_degree);
+        ros_debug!("rotated: {}/{}", current_angle, rotation_rad);
         ros_debug!(
             "rotated: {}/{}. Current pos: {:?}",
             current_angle,
-            rotation_degree,
+            rotation_rad,
             get_current_position()
         );
 
@@ -301,7 +301,7 @@ fn move_forward_caller(args: Vec<String>, velocity_publisher: Publisher<Twist>) 
     move_forward(velocity_publisher, speed, distance, forward_flg);
 }
 
-fn rotate_caller(args: Vec<String>, velocity_publisher: Publisher<Twist>) {
+fn  rotate_caller(args: Vec<String>, velocity_publisher: Publisher<Twist>) {
     let angular_speed = args[2].parse::<f64>().unwrap();
 
     // for convenience specified in degrees. function internally recalculates to radians
