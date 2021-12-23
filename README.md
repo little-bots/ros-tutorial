@@ -50,3 +50,7 @@ export ROS_IP=192.168.1.119
 export ROS_HOSTNAME=192.168.1.119
 export ROS_MASTER_URI=http://192.168.1.115:11311
 ```
+
+## ROS camera
+
+See [usb_cam](http://wiki.ros.org/usb_cam) package & **kamera** package in **res** folder.
