@@ -10,6 +10,7 @@ rosrust = "0.9"
 rosrust_msg = "0.1"
 crossterm = "0.22.1"
 lazy_static = "1.4.0"
+opencv = "0.61.3"
 
 [features]
 default = []
@@ -46,3 +47,7 @@ path = "src/rect_area_client.rs"
 [[bin]]
 name = "turtle-cleaner"
 path = "src/turtle_cleaner.rs"
+
+[[bin]]
+name = "opencv-sample"
+path = "src/opencv_sample.rs"
