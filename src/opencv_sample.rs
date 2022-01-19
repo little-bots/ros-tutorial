@@ -1,4 +1,4 @@
-use opencv::{core, highgui, imgcodecs, imgproc, Result};
+use opencv::{core, highgui, imgcodecs, imgproc, prelude::*, videoio, Result};
 
 fn read_image(
     image_path: &str,
@@ -47,7 +47,8 @@ fn adaptive_tresholding(
     Ok(())
 }
 
-fn main() -> Result<()> {
+#[allow(dead_code)]
+fn show_trees() -> Result<()> {
     let _ = read_image(
         "/tmp/tree.jpg",
         imgcodecs::IMREAD_COLOR,
@@ -86,5 +87,47 @@ fn main() -> Result<()> {
 
     highgui::wait_key(0)?;
     highgui::destroy_all_windows()?;
+    Ok(())
+}
+
+/// taken from https://github.com/twistedfall/opencv-rust/blob/master/examples/video_to_gray.rs
+/// analogy to https://github.com/aniskoubaa/ros_essentials_cpp/blob/ros-noetic/src/topic03_perception/read_video.py
+#[allow(dead_code)]
+fn read_video() -> Result<()> {
+    let window = "video capture";
+    highgui::named_window(window, 1)?;
+    let mut cam = videoio::VideoCapture::new(0, videoio::CAP_ANY)?; // 0 is the default camera
+    let opened = videoio::VideoCapture::is_opened(&cam)?;
+    if !opened {
+        panic!("Unable to open default camera!");
+    }
+    loop {
+        let mut frame = core::Mat::default();
+        cam.read(&mut frame)?;
+        if frame.size()?.width > 0 {
+            let mut gray = core::Mat::default();
+            let mut gray_resized = core::Mat::default();
+            imgproc::cvt_color(&frame, &mut gray, imgproc::COLOR_BGR2GRAY, 0)?;
+            imgproc::resize(
+                &gray,
+                &mut gray_resized,
+                core::Size::new(0, 0),
+                0.5,
+                0.5,
+                imgproc::INTER_LINEAR,
+            )?;
+            // highgui::imshow(window, &gray)?;
+            highgui::imshow(window, &gray_resized)?;
+        }
+        if highgui::wait_key(10)? > 0 {
+            break;
+        }
+    }
+    Ok(())
+}
+
+fn main() -> Result<()> {
+    // show_trees()?;
+    read_video()?;
     Ok(())
 }
