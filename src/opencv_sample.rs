@@ -47,6 +47,23 @@ fn adaptive_tresholding(
     Ok(())
 }
 
+/// https://www.geeksforgeeks.org/filter-color-with-opencv/
+/// https://github.com/aniskoubaa/ros_essentials_cpp/blob/ros-noetic/src/topic03_perception/ball_detection.py#L12-L24
+/// https://cppsecrets.com/users/18989711511997116104103495564103109971051084699111109/C00-OpenCV-cvinRange.php
+fn filter_color(
+    rgb_image: core::Mat,
+    hsv_lowwerb: core::Scalar,
+    hsv_upperb: core::Scalar,
+) -> Result<core::Mat> {
+    let mut hsv_image = core::Mat::default();
+    imgproc::cvt_color(&rgb_image, &mut hsv_image, imgproc::COLOR_BGR2HSV, 0)?;
+
+    let mut mask_image = core::Mat::default();
+    core::in_range(&hsv_image, &hsv_lowwerb, &hsv_upperb, &mut mask_image)?;
+
+    Ok(mask_image)
+}
+
 #[allow(dead_code)]
 fn show_trees() -> Result<()> {
     let _ = read_image(
@@ -126,8 +143,42 @@ fn read_video() -> Result<()> {
     Ok(())
 }
 
+#[allow(dead_code)]
+fn get_pic_contours() -> Result<()> {
+    let tennisball_image = read_image(
+        "/tmp/tennisball05.jpg",
+        imgcodecs::IMREAD_COLOR,
+        true,
+        Some("tennisball05 - original".to_string()),
+    )?;
+
+    let hsv_yellow_lower = core::Scalar::new(30., 150., 100., 0.);
+    let hsv_yellow_upper = core::Scalar::new(50., 255., 255., 0.);
+
+    let binary_image_mask = filter_color(tennisball_image, hsv_yellow_lower, hsv_yellow_upper)?;
+    show_image(&binary_image_mask, Some("binary_image_mask ".to_string()))?;
+
+    let mut contours: core::Vector<core::Point2f> = core::Vector::new();
+    let contours_offset = core::Point::new(0, 0);
+    imgproc::find_contours(
+        &binary_image_mask,
+        &mut contours,
+        imgproc::RETR_EXTERNAL,
+        imgproc::CHAIN_APPROX_SIMPLE,
+        contours_offset,
+    )?;
+
+    show_image(&binary_image_mask, Some("contours - tbd ".to_string()))?;
+
+    highgui::wait_key(0)?;
+    highgui::destroy_all_windows()?;
+
+    Ok(())
+}
+
 fn main() -> Result<()> {
     // show_trees()?;
-    read_video()?;
+    // read_video()?;
+    get_pic_contours()?;
     Ok(())
 }
