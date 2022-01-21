@@ -158,7 +158,7 @@ fn get_pic_contours() -> Result<()> {
     let binary_image_mask = filter_color(tennisball_image, hsv_yellow_lower, hsv_yellow_upper)?;
     show_image(&binary_image_mask, Some("binary_image_mask ".to_string()))?;
 
-    let mut contours: core::Vector<core::Point2f> = core::Vector::new();
+    let mut contours: core::Vector<Mat> = core::Vector::new();
     let contours_offset = core::Point::new(0, 0);
     imgproc::find_contours(
         &binary_image_mask,
@@ -168,7 +168,7 @@ fn get_pic_contours() -> Result<()> {
         contours_offset,
     )?;
 
-    show_image(&binary_image_mask, Some("contours - tbd ".to_string()))?;
+    println!("contours: {:?}", contours);
 
     highgui::wait_key(0)?;
     highgui::destroy_all_windows()?;
