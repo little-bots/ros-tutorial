@@ -50,6 +50,7 @@ fn adaptive_tresholding(
 /// https://www.geeksforgeeks.org/filter-color-with-opencv/
 /// https://github.com/aniskoubaa/ros_essentials_cpp/blob/ros-noetic/src/topic03_perception/ball_detection.py#L12-L24
 /// https://cppsecrets.com/users/18989711511997116104103495564103109971051084699111109/C00-OpenCV-cvinRange.php
+/// https://docs.opencv.org/3.4/da/d97/tutorial_threshold_inRange.html
 fn filter_color(
     rgb_image: core::Mat,
     hsv_lowwerb: core::Scalar,
@@ -144,18 +145,41 @@ fn read_video() -> Result<()> {
 }
 
 #[allow(dead_code)]
+/// uses HSV lower/upper bound filtration to get binary image for contourization
+/// https://stackoverflow.com/questions/57469394/opencv-choosing-hsv-thresholds-for-color-filtering
+/// https://docs.opencv.org/3.4/da/d97/tutorial_threshold_inRange.html
 fn get_pic_contours() -> Result<()> {
-    let tennisball_image = read_image(
-        "/tmp/tennisball05.jpg",
+    // let image_path = "/tmp/tomato.jpg";
+    let image_path = "/tmp/tennisball05.jpg";
+
+    let mut rgb_image = read_image(
+        image_path,
         imgcodecs::IMREAD_COLOR,
         true,
-        Some("tennisball05 - original".to_string()),
+        Some("rgb image - original".to_string()),
     )?;
 
+    // for detecting tennis ball
+    #[allow(unused_variables)]
     let hsv_yellow_lower = core::Scalar::new(30., 150., 100., 0.);
+    #[allow(unused_variables)]
     let hsv_yellow_upper = core::Scalar::new(50., 255., 255., 0.);
 
-    let binary_image_mask = filter_color(tennisball_image, hsv_yellow_lower, hsv_yellow_upper)?;
+    // for detecting potato
+    #[allow(unused_variables)]
+    let hsv_red_lower = core::Scalar::new(8., 230., 73., 0.);
+    #[allow(unused_variables)]
+    let hsv_red_upper = core::Scalar::new(16., 228., 137., 0.);
+
+    // tennis ball filter
+    let hsv_filter_lower = hsv_yellow_lower;
+    let hsv_filter_upper = hsv_yellow_upper;
+
+    // tomato filter
+    // let hsv_filter_lower = hsv_red_lower;
+    // let hsv_filter_upper = hsv_red_upper;
+
+    let binary_image_mask = filter_color(rgb_image.clone(), hsv_filter_lower, hsv_filter_upper)?;
     show_image(&binary_image_mask, Some("binary_image_mask ".to_string()))?;
 
     let mut contours: core::Vector<Mat> = core::Vector::new();
@@ -163,12 +187,102 @@ fn get_pic_contours() -> Result<()> {
     imgproc::find_contours(
         &binary_image_mask,
         &mut contours,
-        imgproc::RETR_EXTERNAL,
+        imgproc::RETR_EXTERNAL, // retrieve outer contours only
         imgproc::CHAIN_APPROX_SIMPLE,
         contours_offset,
     )?;
 
     println!("contours: {:?}", contours);
+
+    let contour_idx = -1; // draw all contours
+    let contour_color = core::Scalar::new(255., 0., 255., 0.);
+    let contour_thickness = 2;
+    let contour_line_type = imgproc::LineTypes::FILLED as i32;
+    let contour_hierarchy = core::Mat::default(); // empty array -> no hierarchy
+    imgproc::draw_contours(
+        &mut rgb_image,
+        &contours,
+        contour_idx,
+        contour_color,
+        contour_thickness,
+        contour_line_type,
+        &contour_hierarchy,
+        0, // max_level is not relevant when hierarchy is not provided
+        core::Point::new(0, 0),
+    )?;
+
+    show_image(&rgb_image, Some("contours image ".to_string()))?;
+
+    highgui::wait_key(0)?;
+    highgui::destroy_all_windows()?;
+
+    Ok(())
+}
+
+#[allow(dead_code)]
+/// uses adaptive thresholding to convert grey image  into binary image for contourization
+fn get_pic_contours_2() -> Result<()> {
+    let image_path = "/tmp/tomato.jpg";
+    // let image_path = "/tmp/tennisball05.jpg";
+
+    let mut rgb_image = read_image(
+        image_path,
+        imgcodecs::IMREAD_COLOR,
+        true,
+        Some("rgm image".to_string()),
+    )?;
+
+    let gray_image = read_image(
+        image_path,
+        imgcodecs::IMREAD_GRAYSCALE,
+        true,
+        Some("gray image".to_string()),
+    )?;
+
+    let mut binary_image = core::Mat::default();
+    adaptive_tresholding(
+        &gray_image,
+        &mut binary_image,
+        255.0, // RGB (255, 0, 0) which is kind of potato-red
+        core::BORDER_REPLICATE,
+        imgproc::THRESH_BINARY_INV,
+        155,
+        2.0,
+    )?;
+
+    show_image(&binary_image, Some("binary_image ".to_string()))?;
+
+    let mut contours: core::Vector<Mat> = core::Vector::new();
+    let contours_offset = core::Point::new(0, 0);
+    imgproc::find_contours(
+        &binary_image,
+        &mut contours,
+        imgproc::RETR_TREE,
+        imgproc::CHAIN_APPROX_SIMPLE,
+        contours_offset,
+    )?;
+
+    println!("contours: {:?}", contours);
+
+    let contour_idx = -1; // draw all contours
+    let contour_color_dark_green = core::Scalar::new(28., 81., 21., 0.);
+    let contour_thickness = 2;
+    let contour_line_type = imgproc::LineTypes::FILLED as i32;
+    let contour_hierarchy = core::Mat::default(); // empty array -> no hierarchy
+
+    imgproc::draw_contours(
+        &mut rgb_image,
+        &contours,
+        contour_idx,
+        contour_color_dark_green,
+        contour_thickness,
+        contour_line_type,
+        &contour_hierarchy,
+        0, // max_level is not relevant when hierarchy is not provided
+        core::Point::new(0, 0),
+    )?;
+
+    show_image(&rgb_image, Some("contours image ".to_string()))?;
 
     highgui::wait_key(0)?;
     highgui::destroy_all_windows()?;
@@ -179,6 +293,7 @@ fn get_pic_contours() -> Result<()> {
 fn main() -> Result<()> {
     // show_trees()?;
     // read_video()?;
-    get_pic_contours()?;
+    // get_pic_contours()?;
+    get_pic_contours_2()?;
     Ok(())
 }
