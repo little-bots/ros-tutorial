@@ -149,8 +149,8 @@ fn read_video() -> Result<()> {
 /// https://stackoverflow.com/questions/57469394/opencv-choosing-hsv-thresholds-for-color-filtering
 /// https://docs.opencv.org/3.4/da/d97/tutorial_threshold_inRange.html
 fn get_pic_contours() -> Result<()> {
-    // let image_path = "/tmp/tomato.jpg";
-    let image_path = "/tmp/tennisball05.jpg";
+    let image_path = "/tmp/tomato.jpg";
+    // let image_path = "/tmp/tennisball05.jpg";
 
     let mut rgb_image = read_image(
         image_path,
@@ -165,19 +165,19 @@ fn get_pic_contours() -> Result<()> {
     #[allow(unused_variables)]
     let hsv_yellow_upper = core::Scalar::new(50., 255., 255., 0.);
 
-    // for detecting potato
+    // for detecting tomato
     #[allow(unused_variables)]
-    let hsv_red_lower = core::Scalar::new(8., 230., 73., 0.);
+    let hsv_red_lower = core::Scalar::new(0., 0., 232., 0.);
     #[allow(unused_variables)]
-    let hsv_red_upper = core::Scalar::new(16., 228., 137., 0.);
+    let hsv_red_upper = core::Scalar::new(180., 138., 255., 0.);
 
     // tennis ball filter
-    let hsv_filter_lower = hsv_yellow_lower;
-    let hsv_filter_upper = hsv_yellow_upper;
+    // let hsv_filter_lower = hsv_yellow_lower;
+    // let hsv_filter_upper = hsv_yellow_upper;
 
     // tomato filter
-    // let hsv_filter_lower = hsv_red_lower;
-    // let hsv_filter_upper = hsv_red_upper;
+    let hsv_filter_lower = hsv_red_lower;
+    let hsv_filter_upper = hsv_red_upper;
 
     let binary_image_mask = filter_color(rgb_image.clone(), hsv_filter_lower, hsv_filter_upper)?;
     show_image(&binary_image_mask, Some("binary_image_mask ".to_string()))?;
@@ -243,7 +243,7 @@ fn get_pic_contours_2() -> Result<()> {
     adaptive_tresholding(
         &gray_image,
         &mut binary_image,
-        255.0, // RGB (255, 0, 0) which is kind of potato-red
+        255.0, // RGB (255, 0, 0) which is kind of tomato-red
         core::BORDER_REPLICATE,
         imgproc::THRESH_BINARY_INV,
         155,
@@ -293,7 +293,7 @@ fn get_pic_contours_2() -> Result<()> {
 fn main() -> Result<()> {
     // show_trees()?;
     // read_video()?;
-    // get_pic_contours()?;
-    get_pic_contours_2()?;
+    get_pic_contours()?;
+    // get_pic_contours_2()?;
     Ok(())
 }
